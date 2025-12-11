@@ -95,6 +95,51 @@ local m_MovementZoneOfControl	: number = UILens.CreateLensLayerHash("Movement_Zo
 local m_HexColoringWaterAvail   : number = UILens.CreateLensLayerHash("Hex_Coloring_Water_Availablity");
 local m_HexColoringGreatPeople  : number = UILens.CreateLensLayerHash("Hex_Coloring_Great_People");
 
+
+-- Natural Wonder Ability Indicators by NETAI
+local m_WonderAbilitiesConfig = {
+	-- UnitAbilityType = {
+	--     FeatureType = FeatureType,
+	-- 	   ControlID = IconIDInXML,
+	-- 	   Tooltip   = ""
+	-- }
+
+	-- Land military units
+	ABILITY_ALPINE_TRAINING = {
+		FeatureType = "FEATURE_MATTERHORN",
+		ControlID = "Icon_AlpineTraining",
+		Tooltip   = ""
+	},
+	ABILITY_SPEAR_OF_FIONN = {
+		FeatureType = "FEATURE_GIANTS_CAUSEWAY",
+		ControlID = "Icon_SpearOfFionn",
+		Tooltip   = ""
+	},
+	ABILITY_WATER_OF_LIFE = {
+		FeatureType = "FEATURE_FOUNTAIN_OF_YOUTH",
+		ControlID = "Icon_WaterOfLife",
+		Tooltip   = ""
+	},
+	-- Naval military units
+	ABILITY_MYSTERIOUS_CURRENTS = {
+		FeatureType = "FEATURE_BERMUDA_TRIANGLE",
+		ControlID = "Icon_MysteriousCurrents",
+		Tooltip   = ""
+	},
+	ABILITY_LYSEFJORD_PROMOTION = {  -- The game doesn't actually handle this through ability. This is a made-up name for consistency
+		FeatureType = "FEATURE_LYSEFJORDEN",
+		ControlID = "Icon_LysefjordPromotion",
+		Tooltip   = ""
+	},
+	-- Religious units
+	ABILITY_ALTITUDE_TRAINING = {
+		FeatureType = "FEATURE_EVEREST",
+		ControlID = "Icon_AltitudeTraining",
+		Tooltip   = ""
+	}
+}
+-- END Natural Wonder Ability Indicators by NETAI
+
 -- ===========================================================================
 --	FUNCTIONS
 -- ===========================================================================
