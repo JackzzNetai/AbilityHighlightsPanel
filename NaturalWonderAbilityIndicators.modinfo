@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="CE5AEBA1-6671-45C9-B685-A5D9A57D8E14" version="1">
+  <Properties>
+    <Name>Natural Wonder Ability Indicators</Name>
+    <Stability>Beta</Stability>
+    <Description>Adds visual indicators to the Unit Panel for units that have acquired unique Natural Wonder abilities (e.g., Alpine Training, Spear of Fionn).</Description>
+    <Teaser>Track acquired Natural Wonder abilities on your units with visual indicators.</Teaser>
+    <Authors>NETAI</Authors>
+    <AffectsSavedGames>0</AffectsSavedGames>
+    <CompatibleVersions>2.0</CompatibleVersions>
+    <SupportsSinglePlayer>1</SupportsSinglePlayer>
+    <SupportsMultiplayer>1</SupportsMultiplayer>
+  </Properties>
+
+  <InGameActions>
+    <ImportFiles id="NWBI_IMPORT_FILES">
+      <Items>
+        <File>UnitPanel.xml</File>
+        <File>UnitPanel.lua</File>
+      </Items>
+    </ImportFiles>
+  </InGameActions>
+
+  <Files>
+    <File>UnitPanel.xml</File>
+    <File>UnitPanel.lua</File>
+  </Files>
+</Mod>
