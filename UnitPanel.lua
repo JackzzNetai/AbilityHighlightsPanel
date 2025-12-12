@@ -20,6 +20,10 @@ local SECONDARY_ACTIONS_ART_PADDING	:number = -4;
 local MAX_BEFORE_TRUNC_STAT_NAME	:number = 170;
 local MIN_UNIT_PANEL_WIDTH			:number = 340;
 local BUILD_ACTIONS_OFFSET			:number = 162;
+-- Natural Wonder Ability Indicators by NETAI
+local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";
+local LYSEFJORD_DUMMY_ABILITY_TYPE  :string = "ABILITY_NWAI_LYSEFJORD_PROMOTION";  -- The game doesn't actually handle this through ability. This is a made-up name for generic implementation
+-- END Natural Wonder Ability Indicators by NETAI
 
 -- ===========================================================================
 --	GLOBALS
@@ -126,7 +130,7 @@ local m_WonderAbilitiesConfig = {
 		ControlID = "Icon_MysteriousCurrents",
 		Tooltip   = ""
 	},
-	ABILITY_NWAI_LYSEFJORD_PROMOTION = {  -- The game doesn't actually handle this through ability. This is a made-up name for consistency
+	[LYSEFJORD_DUMMY_ABILITY_TYPE] = {
 		FeatureType = "FEATURE_LYSEFJORDEN",
 		ControlID = "Icon_LysefjordPromotion",
 		Tooltip   = ""
@@ -4346,6 +4350,9 @@ end
 
 
 -- Natural Wonder Ability Indicators by NETAI
+-- ===========================================================================
+-- Generate the tooltip for each ability icon in player's game language
+-- ===========================================================================
 function InitWonderTooltips()
     for unitAbilityType, config in pairs(m_WonderAbilitiesConfig) do
     	local abilityDef = GameInfo.UnitAbilities[unitAbilityType];
@@ -4361,27 +4368,53 @@ function InitWonderTooltips()
     end
 end
 
+-- ===========================================================================
+-- Check which natural wonder abilities have the selected unit acquired and
+-- display the corresponding icons
+-- ===========================================================================
 function UpdateWonderAbilityIcons(data)
-	-- Hide all icons
-	for _, config in pairs(m_WonderAbilitiesConfig) do
-        Controls[config.ControlID]:SetHide(true);
-    end
+    local hasTheseNaturalWonderAbilities:table = {};  -- an array of `UnitAbilityType`
 
-    -- Iterate through the unit's abilities and unhide the ones it has
+    -- Iterate through the unit's abilities and record the natural wonder
+    -- abilities among them
     if data.Ability then  -- `data.Ability` is an array of integers (Gemini)
     	for _, abilityIndex in ipairs(data.Ability) do
     		local abilityDef = GameInfo.UnitAbilities[abilityIndex];
 
-    		if abilityDef and abilityDef.UnitAbilityType then
-    			local config = m_WonderAbilitiesConfig[abilityDef.UnitAbilityType];
-
-    			if config then
-    				 Controls[config.ControlID]:SetHide(false);
-    				 Controls[config.ControlID]:SetToolTipString(config.Tooltip);
-    			end
+    		if abilityDef and abilityDef.UnitAbilityType and m_WonderAbilitiesConfig[abilityDef.UnitAbilityType] then
+    			-- this is a natural wonder ability!
+    			hasTheseNaturalWonderAbilities[abilityDef.UnitAbilityType] = true;
     		end
     	end
     end
+
+    -- Special care to the promotion gained from Lysefjord
+    local pUnit = UI.GetHeadSelectedUnit();
+    if pUnit and hasAcquiredLysefjordPromotion(pUnit) then
+    	hasTheseNaturalWonderAbilities[LYSEFJORD_DUMMY_ABILITY_TYPE] = true;
+    end
+
+    for unitAbilityType, config in pairs(m_WonderAbilitiesConfig) do
+    	if hasTheseNaturalWonderAbilities[unitAbilityType] then
+    		Controls[config.ControlID]:SetHide(false);
+    		Controls[config.ControlID]:SetToolTipString(config.Tooltip);  -- setting every time for robustness
+    	else
+    		Controls[config.ControlID]:SetHide(true);
+    		-- TODO: (future) maybe show silhouette for acquirable abilities that are not gained yet
+    	end
+    end
+end
+
+-- ===========================================================================
+-- Helper function to check whether the given unit has acquired the free
+-- promotion from Lysefjord.
+-- Note: the game treats the promotion gained from Lysefjord differently from
+-- other natural wonder abilities. A "detour" is needed to retrieve that info.
+--
+-- `pUnit` is guaranteed to not be `nil`
+-- ===========================================================================
+function hasAcquiredLysefjordPromotion(pUnit)
+	return false;
 end
 -- END Natural Wonder Ability Indicators by NETAI
 
