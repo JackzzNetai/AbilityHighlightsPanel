@@ -126,7 +126,7 @@ local m_WonderAbilitiesConfig = {
 		ControlID = "Icon_MysteriousCurrents",
 		Tooltip   = ""
 	},
-	ABILITY_LYSEFJORD_PROMOTION = {  -- The game doesn't actually handle this through ability. This is a made-up name for consistency
+	ABILITY_NWAI_LYSEFJORD_PROMOTION = {  -- The game doesn't actually handle this through ability. This is a made-up name for consistency
 		FeatureType = "FEATURE_LYSEFJORDEN",
 		ControlID = "Icon_LysefjordPromotion",
 		Tooltip   = ""

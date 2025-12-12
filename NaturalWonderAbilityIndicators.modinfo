@@ -13,7 +13,11 @@
   </Properties>
 
   <InGameActions>
-    <ImportFiles id="NWBI_IMPORT_FILES">
+    <UpdateDatabase id="NWAI_DB">
+      <File>Lysefjord_Dummy_Ability.sql</File>
+    </UpdateDatabase>
+
+    <ImportFiles id="NWAI_IMPORT_FILES">
       <Items>
         <File>UnitPanel.xml</File>
         <File>UnitPanel.lua</File>
@@ -24,5 +28,6 @@
   <Files>
     <File>UnitPanel.xml</File>
     <File>UnitPanel.lua</File>
+    <File>Lysefjord_Dummy_Ability.sql</File>
   </Files>
 </Mod>
