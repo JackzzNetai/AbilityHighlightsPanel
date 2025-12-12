@@ -137,7 +137,7 @@ local m_WonderAbilitiesConfig = {
 		ControlID = "Icon_AltitudeTraining",
 		Tooltip   = ""
 	}
-}
+};
 -- END Natural Wonder Ability Indicators by NETAI
 
 -- ===========================================================================
@@ -1003,6 +1003,10 @@ function View(data)
 	Controls.ExpandSecondaryActionStack:CalculateSize();
 
 	ResizeUnitPanelToFitActionButtons();
+
+	-- Natural Wonder Ability Indicators by NETAI
+	UpdateWonderAbilityIcons(data);
+	-- END Natural Wonder Ability Indicators by NETAI
 
 	---=======[ STATS ]=======---
 	-- if there's no valid target to attack, invalidate the combat preview
@@ -4335,7 +4339,7 @@ function Initialize()
 	Controls.SettlementWaterGrid_SettlementBlocked:SetColor(SettlementBlockedColor);
 
 	-- Natural Wonder Ability Indicators by NETAI
-	InitWonderTooltips()
+	InitWonderTooltips();
 	-- END Natural Wonder Ability Indicators by NETAI
 
 end
@@ -4356,6 +4360,29 @@ function InitWonderTooltips()
 
 	    	config.Tooltip = name .. " (" .. source .. ")[NEWLINE]" .. desc;
 	    end
+    end
+end
+
+function UpdateWonderAbilityIcons(data)
+	-- Hide all icons
+	for _, config in pairs(m_WonderAbilitiesConfig) do
+        Controls[config.ControlID]:SetHide(true);
+    end
+
+    -- Iterate through the unit's abilities and unhide the ones it has
+    if data.Ability then  -- `data.Ability` is an array of integers (Gemini)
+    	for _, abilityIndex in ipairs(data.Ability) do
+    		local abilityDef = GameInfo.UnitAbilities[abilityIndex];
+
+    		if abilityDef and abilityDef.UnitAbilityType then
+    			local config = m_WonderAbilitiesConfig[abilityDef.UnitAbilityType];
+
+    			if config then
+    				 Controls[config.ControlID]:SetHide(false);
+    				 Controls[config.ControlID]:SetToolTipString(config.Tooltip);
+    			end
+    		end
+    	end
     end
 end
 -- END Natural Wonder Ability Indicators by NETAI
