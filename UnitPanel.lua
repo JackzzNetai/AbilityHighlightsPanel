@@ -4344,8 +4344,6 @@ function Initialize()
 
 end
 
-Initialize();
-
 
 -- Natural Wonder Ability Indicators by NETAI
 function InitWonderTooltips()
@@ -4386,3 +4384,5 @@ function UpdateWonderAbilityIcons(data)
     end
 end
 -- END Natural Wonder Ability Indicators by NETAI
+
+Initialize();
