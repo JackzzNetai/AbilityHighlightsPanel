@@ -2154,6 +2154,22 @@ function OnToggleSecondRow()
 	ResizeUnitPanelToFitActionButtons();
 end
 
+-- Natural Wonder Ability Indicators by NETAI
+-- ===========================================================================
+function onToggleAbilityPanel()
+	local isHidden:boolean = Controls.AbilityHighlightsPanel:IsHidden();
+	if isHidden then
+		Controls.AbilityHighlightsPanel:SetHide(false);
+		Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,22);
+		Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Collapse ability summary panel.");
+	else
+		Controls.AbilityHighlightsPanel:SetHide(true);
+		Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,0);
+		Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Expand ability summary panel.");
+	end
+end
+-- END Natural Wonder Ability Indicators by NETAI
+
 -- ===========================================================================
 function OnSecondaryActionStackMouseEnter()
 	Controls.ExpandSecondaryActionGrid:SetAlpha(1.0);
@@ -4290,6 +4306,9 @@ function Initialize()
 	Controls.ExpandSecondaryActionsButton:RegisterCallback( Mouse.eLClick, OnToggleSecondRow );
 	Controls.ExpandSecondaryActionsButton:RegisterMouseEnterCallback( OnSecondaryActionStackMouseEnter );
 	Controls.ExpandSecondaryActionsButton:RegisterMouseExitCallback( OnSecondaryActionStackMouseExit );
+	-- Natural Wonder Ability Indicators by NETAI
+	Controls.AbilityHighlightsPanelToggleButton:RegisterCallback( Mouse.eLClick, onToggleAbilityPanel);
+	-- END Natural Wonder Ability Indicators by NETAI
 
 	Events.BeginWonderReveal.Add( OnBeginWonderReveal );
 	Events.CitySelectionChanged.Add( OnCitySelectionChanged );
