@@ -13,21 +13,23 @@
   </Properties>
 
   <InGameActions>
-    <UpdateDatabase id="NWAI_DB">
+    <UpdateDatabase id="UAH_DB">
       <File>Lysefjord_Dummy_Ability.sql</File>
     </UpdateDatabase>
 
-    <ImportFiles id="NWAI_IMPORT_FILES">
-      <Items>
-        <File>UnitPanel.xml</File>
-        <File>UnitPanel.lua</File>
-      </Items>
+    <ImportFiles id="UAH_IMPORT_FILES">
+      <File>UnitPanel.xml</File>
     </ImportFiles>
+
+    <AddUserInterface id="UAH_LOGIC">
+      <File>UnitAbilityHighlights.xml</File>
+    </AddUserInterface>
   </InGameActions>
 
   <Files>
     <File>UnitPanel.xml</File>
-    <File>UnitPanel.lua</File>
+    <File>UnitAbilityHighlights.xml</File>
+    <File>UnitAbilityHighlights.lua</File>
     <File>Lysefjord_Dummy_Ability.sql</File>
   </Files>
 </Mod>
