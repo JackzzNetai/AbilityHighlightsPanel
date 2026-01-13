@@ -1,26 +1,46 @@
-local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";
-local LYSEFJORD_DUMMY_ABILITY_TYPE  :string = "ABILITY_UAH_LYSEFJORD_PROMOTION";  -- The game doesn't actually handle this through ability. This is a made-up name for generic implementation
+local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";  -- This is an official modifier
+local LYSEFJORD_DUMMY_ABILITY_TYPE  :string = "ABILITY_AHP_LYSEFJORD_PROMOTION";  -- The game doesn't actually handle this through ability. This is a made-up name for generic implementation
 
-local m_Controls:table = {};  -- Initialize empty table to store found controls
-local m_WonderAbilitiesConfig = {
-    -- UnitAbilityType =             { FeatureType = FeatTypeOfGrantingWonder,    ControlID = IconIDInXML }
+local m_NaturalWonderAbilitiesConfig = {
+    -- UnitAbilityType = {
+    --     FeatureType = FeatureType,
+    --     ControlID = IconIDInXML
+    -- }
 
     -- Land military units
-    ABILITY_ALPINE_TRAINING =        { FeatureType = "FEATURE_MATTERHORN",        ControlID = "Icon_AlpineTraining" },
-    ABILITY_SPEAR_OF_FIONN =         { FeatureType = "FEATURE_GIANTS_CAUSEWAY",   ControlID = "Icon_SpearOfFionn" },
-    ABILITY_WATER_OF_LIFE =          { FeatureType = "FEATURE_FOUNTAIN_OF_YOUTH", ControlID = "Icon_WaterOfLife" },
+    ABILITY_ALPINE_TRAINING = {
+        FeatureType = "FEATURE_MATTERHORN",
+        ControlID = "Icon_AlpineTraining"
+    },
+    ABILITY_SPEAR_OF_FIONN = {
+        FeatureType = "FEATURE_GIANTS_CAUSEWAY",
+        ControlID = "Icon_SpearOfFionn"
+    },
+    ABILITY_WATER_OF_LIFE = {
+        FeatureType = "FEATURE_FOUNTAIN_OF_YOUTH",
+        ControlID = "Icon_WaterOfLife"
+    },
     -- Naval military units
-    ABILITY_MYSTERIOUS_CURRENTS =    { FeatureType = "FEATURE_BERMUDA_TRIANGLE",  ControlID = "Icon_MysteriousCurrents" },
-    [LYSEFJORD_DUMMY_ABILITY_TYPE] = { FeatureType = "FEATURE_LYSEFJORDEN",       ControlID = "Icon_LysefjordPromotion" },
+    ABILITY_MYSTERIOUS_CURRENTS = {
+        FeatureType = "FEATURE_BERMUDA_TRIANGLE",
+        ControlID = "Icon_MysteriousCurrents"
+    },
+    [LYSEFJORD_DUMMY_ABILITY_TYPE] = {
+        FeatureType = "FEATURE_LYSEFJORDEN",
+        ControlID = "Icon_LysefjordPromotion"
+    },
     -- Religious units
-    ABILITY_ALTITUDE_TRAINING =      { FeatureType = "FEATURE_EVEREST",           ControlID = "Icon_AltitudeTraining" }
+    ABILITY_ALTITUDE_TRAINING = {
+        FeatureType = "FEATURE_EVEREST",
+        ControlID = "Icon_AltitudeTraining"
+    }
 };
 
 -- ===========================================================================
 -- Generate the tooltip for each ability icon in player's game language
 -- ===========================================================================
 function InitAbilityTooltips()
-    for unitAbilityType, config in pairs(m_WonderAbilitiesConfig) do
+    for unitAbilityType, config in pairs(m_NaturalWonderAbilitiesConfig) do
         local abilityDef = GameInfo.UnitAbilities[unitAbilityType];
         local featureDef = GameInfo.Features[config.FeatureType];
 
@@ -29,7 +49,7 @@ function InitAbilityTooltips()
             local source:string = Locale.Lookup(featureDef.Name);
             local desc  :string = Locale.Lookup(abilityDef.Description);
 
-            config.Tooltip = name .. " (" .. source .. ")[NEWLINE]" .. desc;
+            Controls[config.ControlID]:SetToolTipString(name .. " (" .. source .. ")[NEWLINE]" .. desc);
         end
     end
 end
@@ -83,30 +103,18 @@ end
 -- Main update logic: check which natural wonder abilities have the selected
 -- unit acquired and display the corresponding icons
 -- ===========================================================================
-function UpdateWonderAbilityIcons()
-    if not m_Controls["UAH_Root"] then
-        return
-    end
-
+function UpdateNaturalWonderAbilityIcons()
     local pUnit = UI.GetHeadSelectedUnit();
     if pUnit == nil then
-        m_Controls["UAH_Root"]:SetHide(true);
+        Controls.AHP_Root:SetHide(true);
         return;
     end
 
-    local formationClass:string = GameInfo.Units[pUnit:GetUnitType()].FormationClass;
-    if formationClass ~= "FORMATION_CLASS_LAND_COMBAT" and
-       formationClass ~= "FORMATION_CLASS_NAVAL" and
-       formationClass ~= "FORMATION_CLASS_AIR" then
-        m_Controls["UAH_Root"]:SetHide(true);
-        return
-    end
+    Controls.AHP_Root:SetHide(false);
 
-    m_Controls.AHP_Root:SetHide(false);
-
-    local dataAbility:table = pUnit:GetAbility():GetAbilities();  -- an array of integers (Gemini)
+    local dataAbility:table  = pUnit:GetAbility():GetAbilities();  -- an array of integers (Gemini)
     local ownerID    :number = pUnit:GetOwner();
-    local unitID     :number= pUnit:GetID();
+    local unitID     :number = pUnit:GetID();
 
     local hasTheseNaturalWonderAbilities:table = {};  -- an array of `UnitAbilityType`
 
@@ -116,7 +124,7 @@ function UpdateWonderAbilityIcons()
         for _, abilityIndex in ipairs(dataAbility) do
             local abilityDef = GameInfo.UnitAbilities[abilityIndex];
 
-            if abilityDef and abilityDef.UnitAbilityType and m_WonderAbilitiesConfig[abilityDef.UnitAbilityType] then
+            if abilityDef and abilityDef.UnitAbilityType and m_NaturalWonderAbilitiesConfig[abilityDef.UnitAbilityType] then
                 -- this is a natural wonder ability!
                 hasTheseNaturalWonderAbilities[abilityDef.UnitAbilityType] = true;
             end
@@ -129,11 +137,10 @@ function UpdateWonderAbilityIcons()
     end
 
     -- Reveal or hide icons based on availability
-    for unitAbilityType, config in pairs(m_WonderAbilitiesConfig) do
-        local control:string = m_Controls[config.ControlID];
+    for unitAbilityType, config in pairs(m_NaturalWonderAbilitiesConfig) do
+        local control = Controls[config.ControlID];
         if hasTheseNaturalWonderAbilities[unitAbilityType] then
             control:SetHide(false);
-            control:SetToolTipString(config.Tooltip);  -- setting every time for robustness
         else
             control:SetHide(true);
             -- TODO: (future) maybe show silhouette for acquirable abilities that are not gained yet
@@ -145,39 +152,38 @@ end
 -- UI handlers
 -- ===========================================================================
 function onToggleAbilityHighlightsPanel()
-    local isHidden:boolean = m_Controls["UAH_Panel"]:IsHidden();
+    local isHidden:boolean = Controls.AbilityHighlightsPanel:IsHidden();
     if isHidden then
-        m_Controls["UAH_Panel"]:SetHide(false);
-        m_Controls["UAH_PanelToggleButton"]:SetTextureOffsetVal(0,22);
-        m_Controls["UAH_PanelToggleButton"]:SetToolTipString("Collapse ability summary panel.");
+        Controls.AbilityHighlightsPanel:SetHide(false);
+        Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,22);
+        Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Collapse ability summary panel.");
     else
-        m_Controls["UAH_Panel"]:SetHide(true);
-        m_Controls["UAH_PanelToggleButton"]:SetTextureOffsetVal(0,0);
-        m_Controls["UAH_PanelToggleButton"]:SetToolTipString("Expand ability summary panel.");
+        Controls.AbilityHighlightsPanel:SetHide(true);
+        Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,0);
+        Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Expand ability summary panel.");
     end
 end
 
 -- ===========================================================================
--- Initialization
+-- Initialization / Injection
 -- ===========================================================================
 function Initialize()
-    local rootPath:string = "/InGame/UnitPanel/UnitPanelAlpha/UnitPanelSlide/UnitPanelBaseContainer/UnitIcon/UAH_Root";
-    m_Controls["UAH_Root"]              = ContextPtr:LookUpControl(rootPath);
-    m_Controls["UAH_Panel"]             = ContextPtr:LookUpControl(rootPath .. "/UAH_Panel");
-    m_Controls["UAH_PanelToggleButton"] = ContextPtr:LookUpControl(rootPath .. "/UAH_PanelToggleButton");
-    local stackPath:string = rootPath .. "/UAH_Panel/WonderAbilityStack";
-    for _, config in pairs(m_WonderAbilitiesConfig) do
-        local controlID:string = config.ControlID;
-        m_Controls[controlID] = ContextPtr:LookUpControl(stackPath .. "/" .. controlID);
+    print("Initializing Ability Highlights Panel...");
+
+    local targetPath = "/InGame/UnitPanel/UnitPanelAlpha/UnitPanelSlide/UnitPanelBaseContainer/UnitIcon";
+    local targetControl = ContextPtr:LookUpControl(targetPath);
+    if targetControl then
+        Controls.AHP_Root:ChangeParent(targetControl);
+    else
+        print("AHP Error: Could not find " .. targetPath .. ". Abort.");
+        return;
     end
 
-    if m_Controls["UAH_Root"] then
-        InitAbilityTooltips();
-        m_Controls["UAH_PanelToggleButton"]:RegisterCallback( Mouse.eLClick, onToggleAbilityHighlightsPanel );
-
-        Events.UnitSelectionChanged.Add( UpdateWonderAbilityIcons );
-    end
+    InitAbilityTooltips();
+    Controls.AbilityHighlightsPanelToggleButton:RegisterCallback( Mouse.eLClick, onToggleAbilityHighlightsPanel );
 end
 
 
-Events.LoadScreenClose.Add(Initialize);
+Events.LoadScreenClose.Add( Initialize );
+Events.UnitSelectionChanged.Add( UpdateNaturalWonderAbilityIcons );
+Events.UnitPromoted.Add( UpdateNaturalWonderAbilityIcons );

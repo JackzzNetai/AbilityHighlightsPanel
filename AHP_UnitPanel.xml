@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Context>
+    <Container ID="AHP_Root" Size="parent,parent" Hidden="1">
+
+        <Image ID="AbilityHighlightsPanel"
+               Texture="Circle80_Base"
+               Size="parent-10,parent-10"
+               Anchor="C,C"
+               Color="0,0,0,150">
+
+            <Stack ID="NaturalWonderAbilityStack" Anchor="R,C" Offset="9,0" StackGrowth="Down" StackPadding="3">
+                <Image ID="Icon_AlpineTraining"     Size="16,16" Icon="ICON_UNITOPERATION_RETRAIN"      IconSize="16" Hidden="1" />
+                <Image ID="Icon_SpearOfFionn"       Size="16,16" Icon="ICON_UNIT_MACEDONIAN_HETAIROI"   IconSize="16" Hidden="1" />
+                <Image ID="Icon_WaterOfLife"        Size="16,16" Icon="ICON_UNITOPERATION_HEAL"         IconSize="16" Hidden="1" />
+                <Image ID="Icon_MysteriousCurrents" Size="16,16" Icon="ICON_UNITOPERATION_MOVE_TO"      IconSize="16" Hidden="1" />
+                <Image ID="Icon_LysefjordPromotion" Size="16,16" Icon="ICON_UNITCOMMAND_PROMOTE"        IconSize="16" Hidden="1" />
+                <Image ID="Icon_AltitudeTraining"   Size="16,16" Icon="ICON_UNITOPERATION_RETRAIN"      IconSize="16" Hidden="1" />
+            </Stack>
+        </Image>
+
+        <Button ID="AbilityHighlightsPanelToggleButton"
+                Anchor="R,T"
+                Offset="36,-28"
+                Size="22,22"
+                Texture="Controls_ExpandButton"
+                TextureOffset="0,22"
+                NoStateChange="1"
+                ConsumeMouse="1" />
+
+    </Container>
+</Context>
