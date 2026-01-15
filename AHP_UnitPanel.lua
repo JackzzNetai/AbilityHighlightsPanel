@@ -36,21 +36,66 @@ local m_NaturalWonderAbilitiesConfig = {
     }
 };
 
--- ===========================================================================
--- Generate the tooltip for each ability icon in player's game language
--- ===========================================================================
-function InitAbilityTooltips()
-    for unitAbilityType, config in pairs(m_NaturalWonderAbilitiesConfig) do
-        local abilityDef = GameInfo.UnitAbilities[unitAbilityType];
-        local featureDef = GameInfo.Features[config.FeatureType];
-
-        if abilityDef and featureDef then
-            local name  :string = Locale.Lookup(abilityDef.Name);
-            local source:string = Locale.Lookup(featureDef.Name);
-            local desc  :string = Locale.Lookup(abilityDef.Description);
-
-            Controls[config.ControlID]:SetToolTipString(name .. " (" .. source .. ")[NEWLINE]" .. desc);
+function UpdateAbilityHighlightsPanel(playerID:number, unitID:number)
+    local pPlayer = Players[playerID];
+    if pPlayer then
+        local pUnit = pPlayer:GetUnits():FindID(unitID);
+        if pUnit and IsValidForAbilityHighlightsPanelDisplay(GameInfo.Units[pUnit:GetType()]) then
+            Controls.AHP_Root:SetHide(false);
+            UpdateNaturalWonderAbilityIcons(pUnit:GetAbility():GetAbilities());  -- argument passed is an array of integers (Gemini)
+            UpdateLysefjordPromotionIcon(playerID, unitID);  -- UpdateLysefjordPromotionIcon must execute after UpdateNaturalWonderAbilityIcons for the correct display of Icon_LysefjordPromotion
+        else
+            Controls.AHP_Root:SetHide(true);
         end
+    end
+end
+
+-- ===========================================================================
+-- Check if the given unit belongs to one of the following groups:
+-- 1. land combat units
+-- 2. naval combat units
+-- 3. air combat units
+-- 4. religious units (Missionaries, Apostles, Gurus, and Inquisitors)
+-- ===========================================================================
+function IsValidForAbilityHighlightsPanelDisplay(unitInfo:table)
+    if unitInfo then  -- NETAI actually supposes that `unitInfo` cannot be `nil`, but just for extra robustness
+        local formationClass   :string = unitInfo.FormationClass;
+        local religiousStrength:number = unitInfo.ReligiousStrength;
+        if formationClass == "FORMATION_CLASS_LAND_COMBAT" or
+           formationClass == "FORMATION_CLASS_NAVAL" or
+           formationClass == "FORMATION_CLASS_AIR" or
+           (religiousStrength and religiousStrength > 0) then
+            return true;
+        end
+    end
+
+    return false;
+end
+
+-- ===========================================================================
+-- Main update logic: check which natural wonder abilities have the selected
+-- unit acquired and display the corresponding icons
+-- ===========================================================================
+function UpdateNaturalWonderAbilityIcons(dataAbility:table)
+    local hasTheseNaturalWonderAbilities:table = {};  -- an array of `UnitAbilityType`
+
+    -- Iterate through the unit's abilities and record the natural wonder
+    -- abilities among them
+    if dataAbility then
+        for _, abilityIndex in ipairs(dataAbility) do
+            local abilityDef:table = GameInfo.UnitAbilities[abilityIndex];
+
+            if abilityDef and abilityDef.UnitAbilityType and m_NaturalWonderAbilitiesConfig[abilityDef.UnitAbilityType] then
+                -- this is a natural wonder ability!
+                hasTheseNaturalWonderAbilities[abilityDef.UnitAbilityType] = true;
+            end
+        end
+    end
+
+    -- Reveal or hide icons based on availability
+    for unitAbilityType, config in pairs(m_NaturalWonderAbilitiesConfig) do
+        Controls[config.ControlID]:SetHide(not hasTheseNaturalWonderAbilities[unitAbilityType]);
+        -- TODO: (future) maybe show silhouette for acquirable abilities that are not gained yet
     end
 end
 
@@ -60,7 +105,9 @@ end
 -- Note: the game treats the promotion gained from Lysefjord differently from
 -- other natural wonder abilities. A "detour" is needed to retrieve that info.
 -- ===========================================================================
-function hasAcquiredLysefjordPromotion(ownerID, givenUnitID)
+function UpdateLysefjordPromotionIcon(playerID:number, unitID:number)
+    local iconControl = Controls[m_NaturalWonderAbilitiesConfig[LYSEFJORD_DUMMY_ABILITY_TYPE].ControlID];
+
     local activeModifiers = GameEffects.GetModifiers();
     --    ^^^
     -- an array of integers (Gemini) representing
@@ -80,15 +127,16 @@ function hasAcquiredLysefjordPromotion(ownerID, givenUnitID)
 
             if subjects then
                 for _, subjectID in ipairs(subjects) do
-                    if GameEffects.GetObjectsPlayerId(subjectID) == ownerID then
+                    if GameEffects.GetObjectsPlayerId(subjectID) == playerID then
                         -- Found an object that belongs to the player
 
                         -- Check if the found unit is the given unit
                         local subjectStr = GameEffects.GetObjectString(subjectID);
                         local foundUnitID = tonumber(string.match(subjectStr, "Unit: (%d+)"));
 
-                        if foundUnitID == givenUnitID then
-                            return true; 
+                        if foundUnitID == unitID then
+                            iconControl:SetHide(false);
+                            return; 
                         end
                     end
                 end
@@ -96,54 +144,23 @@ function hasAcquiredLysefjordPromotion(ownerID, givenUnitID)
         end
     end
 
-    return false
+    iconControl:SetHide(true);
 end
 
 -- ===========================================================================
--- Main update logic: check which natural wonder abilities have the selected
--- unit acquired and display the corresponding icons
+-- Generate the tooltip for each ability icon in player's game language
 -- ===========================================================================
-function UpdateNaturalWonderAbilityIcons()
-    local pUnit = UI.GetHeadSelectedUnit();
-    if pUnit == nil then
-        Controls.AHP_Root:SetHide(true);
-        return;
-    end
-
-    Controls.AHP_Root:SetHide(false);
-
-    local dataAbility:table  = pUnit:GetAbility():GetAbilities();  -- an array of integers (Gemini)
-    local ownerID    :number = pUnit:GetOwner();
-    local unitID     :number = pUnit:GetID();
-
-    local hasTheseNaturalWonderAbilities:table = {};  -- an array of `UnitAbilityType`
-
-    -- Iterate through the unit's abilities and record the natural wonder
-    -- abilities among them
-    if dataAbility then
-        for _, abilityIndex in ipairs(dataAbility) do
-            local abilityDef = GameInfo.UnitAbilities[abilityIndex];
-
-            if abilityDef and abilityDef.UnitAbilityType and m_NaturalWonderAbilitiesConfig[abilityDef.UnitAbilityType] then
-                -- this is a natural wonder ability!
-                hasTheseNaturalWonderAbilities[abilityDef.UnitAbilityType] = true;
-            end
-        end
-    end
-
-    -- Special care to the promotion gained from Lysefjord
-    if hasAcquiredLysefjordPromotion(ownerID, unitID) then
-        hasTheseNaturalWonderAbilities[LYSEFJORD_DUMMY_ABILITY_TYPE] = true;
-    end
-
-    -- Reveal or hide icons based on availability
+function InitAbilityTooltips()
     for unitAbilityType, config in pairs(m_NaturalWonderAbilitiesConfig) do
-        local control = Controls[config.ControlID];
-        if hasTheseNaturalWonderAbilities[unitAbilityType] then
-            control:SetHide(false);
-        else
-            control:SetHide(true);
-            -- TODO: (future) maybe show silhouette for acquirable abilities that are not gained yet
+        local abilityDef:table = GameInfo.UnitAbilities[unitAbilityType];
+        local featureDef:table = GameInfo.Features[config.FeatureType];
+
+        if abilityDef and featureDef then
+            local name  :string = Locale.Lookup(abilityDef.Name);
+            local source:string = Locale.Lookup(featureDef.Name);
+            local desc  :string = Locale.Lookup(abilityDef.Description);
+
+            Controls[config.ControlID]:SetToolTipString(name .. " (" .. source .. ")[NEWLINE]" .. desc);
         end
     end
 end
@@ -151,16 +168,16 @@ end
 -- ===========================================================================
 -- UI handlers
 -- ===========================================================================
-function onToggleAbilityHighlightsPanel()
+function OnToggleAbilityHighlightsPanel()
     local isHidden:boolean = Controls.AbilityHighlightsPanel:IsHidden();
     if isHidden then
         Controls.AbilityHighlightsPanel:SetHide(false);
         Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,22);
-        Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Collapse ability summary panel.");
+        Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Collapse ability highlights panel.");
     else
         Controls.AbilityHighlightsPanel:SetHide(true);
         Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,0);
-        Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Expand ability summary panel.");
+        Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Expand ability highlights panel.");
     end
 end
 
@@ -179,11 +196,54 @@ function Initialize()
         return;
     end
 
+
     InitAbilityTooltips();
-    Controls.AbilityHighlightsPanelToggleButton:RegisterCallback( Mouse.eLClick, onToggleAbilityHighlightsPanel );
+
+    -- When a unit is selected
+    -- update: natural wonder abilities; Icon_LysefjordPromotion; exp modifier; promo tree
+    Events.UnitSelectionChanged.Add(function(playerID, unitID, locationX, locationY, locationZ, isSelected, isEditable)
+        if isSelected then
+            UpdateIfSelectedUnit(playerID, unitID);
+        end
+    end);
+
+    -- When a unit finishes moving
+    -- update: natural wonder abilities
+    Events.UnitMoveComplete.Add(function(playerID, unitID, iX, iY) UpdateIfSelectedUnit(playerID, unitID); end);
+
+    -- When a unit is promoted
+    -- update: promo tree
+    Events.UnitPromoted.Add(function(playerID, unitID) UpdateIfSelectedUnit(playerID, unitID); end);  -- TODO: 是否有必要单独列出还是已被UnitCommandStarted涵盖
+
+    -- When a unit is upgraded
+    -- update: Icon_LysefjordPromotion
+    -- When a unit is combined with another unit to form Corps, Fleet, Army, or Armada
+    -- update: natural wonder abilities; Icon_LysefjordPromotion; exp modifier; promo tree
+    Events.UnitCommandStarted.Add(function(playerID, unitID, hCommand, iData1) UpdateIfSelectedUnit(playerID, unitID); end);
+
+    Controls.AbilityHighlightsPanelToggleButton:RegisterCallback(Mouse.eLClick, OnToggleAbilityHighlightsPanel);
+
+
+    -- Initial Run
+    local pUnit = UI.GetHeadSelectedUnit();
+    if pUnit then
+        UpdateAbilityHighlightsPanel(pUnit:GetOwner(), pUnit:GetID());
+    end
+end
+
+-- ===========================================================================
+-- Helper Function: UpdateIfSelectedUnit
+-- This functions acts as a filter. It receives the ID of a unit that changed,
+-- checks if it matches the unit the player currently has selected, and 
+-- triggers the UI update if they match.
+-- ===========================================================================
+function UpdateIfSelectedUnit(playerID:number, unitID:number)
+    local pSelectedUnit = UI.GetHeadSelectedUnit();
+
+    if pSelectedUnit and (pSelectedUnit:GetOwner() == playerID) and (pSelectedUnit:GetID() == unitID) then
+        UpdateAbilityHighlightsPanel(playerID, unitID);
+    end
 end
 
 
-Events.LoadScreenClose.Add( Initialize );
-Events.UnitSelectionChanged.Add( UpdateNaturalWonderAbilityIcons );
-Events.UnitPromoted.Add( UpdateNaturalWonderAbilityIcons );
+Events.LoadScreenClose.Add(Initialize);
