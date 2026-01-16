@@ -16,6 +16,8 @@
                 <Image ID="Icon_LysefjordPromotion" Size="16,16" Icon="ICON_UNITCOMMAND_PROMOTE"        IconSize="16" Hidden="1" />
                 <Image ID="Icon_AltitudeTraining"   Size="16,16" Icon="ICON_UNITOPERATION_RETRAIN"      IconSize="16" Hidden="1" />
             </Stack>
+
+            <Container ID="PromotionIconContainer" Anchor="C,C" Size="35,65" />
         </Image>
 
         <Button ID="AbilityHighlightsPanelToggleButton"
@@ -28,4 +30,8 @@
                 ConsumeMouse="1" />
 
     </Container>
+
+    <Instance Name="PromotionIconInstance">
+        <Image ID="PromotionIconRootControl" Size="18,18" Texture="Controls_RadioButton" NoStateChange="1" ConsumeMouse="1" />
+    </Instance>
 </Context>

@@ -1,3 +1,5 @@
+include("InstanceManager");
+
 local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";  -- This is an official modifier
 local LYSEFJORD_DUMMY_ABILITY_TYPE  :string = "ABILITY_AHP_LYSEFJORD_PROMOTION";  -- The game doesn't actually handle this through ability. This is a made-up name for generic implementation
 
@@ -36,14 +38,18 @@ local m_NaturalWonderAbilitiesConfig = {
     }
 };
 
+local m_PromotionIconIM = InstanceManager:new("PromotionIconInstance", "PromotionIconRootControl", Controls.PromotionIconContainer);
+
 function UpdateAbilityHighlightsPanel(playerID:number, unitID:number)
     local pPlayer = Players[playerID];
     if pPlayer then
         local pUnit = pPlayer:GetUnits():FindID(unitID);
-        if pUnit and IsValidForAbilityHighlightsPanelDisplay(GameInfo.Units[pUnit:GetType()]) then
+        local unitInfo:table = GameInfo.Units[pUnit:GetType()];
+        if pUnit and unitInfo and IsValidForAbilityHighlightsPanelDisplay(unitInfo.FormationClass, unitInfo.ReligiousStrength) then
             Controls.AHP_Root:SetHide(false);
-            UpdateNaturalWonderAbilityIcons(pUnit:GetAbility():GetAbilities());  -- argument passed is an array of integers (Gemini)
+            UpdateNaturalWonderAbilityIcons(pUnit:GetAbility():GetAbilities());
             UpdateLysefjordPromotionIcon(playerID, unitID);  -- UpdateLysefjordPromotionIcon must execute after UpdateNaturalWonderAbilityIcons for the correct display of Icon_LysefjordPromotion
+            UpdatePromotionIcons(unitInfo.PromotionClass, pUnit:GetExperience():GetPromotions());
         else
             Controls.AHP_Root:SetHide(true);
         end
@@ -57,24 +63,17 @@ end
 -- 3. air combat units
 -- 4. religious units (Missionaries, Apostles, Gurus, and Inquisitors)
 -- ===========================================================================
-function IsValidForAbilityHighlightsPanelDisplay(unitInfo:table)
-    if unitInfo then  -- NETAI actually supposes that `unitInfo` cannot be `nil`, but just for extra robustness
-        local formationClass   :string = unitInfo.FormationClass;
-        local religiousStrength:number = unitInfo.ReligiousStrength;
-        if formationClass == "FORMATION_CLASS_LAND_COMBAT" or
+function IsValidForAbilityHighlightsPanelDisplay(formationClass:string, religiousStrength:number)
+    return formationClass == "FORMATION_CLASS_LAND_COMBAT" or
            formationClass == "FORMATION_CLASS_NAVAL" or
            formationClass == "FORMATION_CLASS_AIR" or
-           (religiousStrength and religiousStrength > 0) then
-            return true;
-        end
-    end
-
-    return false;
+           (religiousStrength and religiousStrength > 0);
 end
 
 -- ===========================================================================
 -- Main update logic: check which natural wonder abilities have the selected
 -- unit acquired and display the corresponding icons
+-- `dataAbility` is an array of integers (Gemini)
 -- ===========================================================================
 function UpdateNaturalWonderAbilityIcons(dataAbility:table)
     local hasTheseNaturalWonderAbilities:table = {};  -- an array of `UnitAbilityType`
@@ -100,8 +99,7 @@ function UpdateNaturalWonderAbilityIcons(dataAbility:table)
 end
 
 -- ===========================================================================
--- Helper function to check whether the given unit has acquired the free
--- promotion from Lysefjord.
+-- Check whether the given unit has acquired the free promotion from Lysefjord.
 -- Note: the game treats the promotion gained from Lysefjord differently from
 -- other natural wonder abilities. A "detour" is needed to retrieve that info.
 -- ===========================================================================
@@ -147,6 +145,44 @@ function UpdateLysefjordPromotionIcon(playerID:number, unitID:number)
     iconControl:SetHide(true);
 end
 
+-- `dataPromotion` is an array of integers (Gemini)
+function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
+    m_PromotionIconIM:ResetInstances();
+
+    -- Table for O(1) lookup
+    local hasThesePromotions:table = {};
+    for _, id in ipairs(dataPromotion) do
+        hasThesePromotions[id] = true;
+    end
+
+    -- Display nodes (promotions)
+    for row in GameInfo.UnitPromotions() do
+        if row.PromotionClass == promotionClass and row.Column ~= 0 then
+            local horizontalAnchor:string = "";
+            if     row.Column == 1 then horizontalAnchor = "L";
+            elseif row.Column == 2 then horizontalAnchor = "C";
+            elseif row.Column == 3 then horizontalAnchor = "R";
+            end
+            local textureOffsetVal:number = 0;
+            local unearnedHint:string = "";
+            if hasThesePromotions[row.Index] then
+                textureOffsetVal = 108;
+            else
+                textureOffsetVal = 36;
+                unearnedHint = " [COLOR:Red](" .. Locale.Lookup("LOC_AHP_UNEARNED") .. ")[ENDCOLOR]"
+            end
+
+            local promotionIconInstance = m_PromotionIconIM:GetInstance();
+            promotionIconInstance.PromotionIconRootControl:SetAnchor(horizontalAnchor .. ",T");
+            promotionIconInstance.PromotionIconRootControl:SetOffsetVal(0, (row.Level-1)*18-3);
+            promotionIconInstance.PromotionIconRootControl:SetTextureOffsetVal(0, textureOffsetVal);
+            promotionIconInstance.PromotionIconRootControl:SetToolTipString(Locale.Lookup(row.Name) .. unearnedHint .. "[NEWLINE]" .. Locale.Lookup(row.Description));
+        end
+    end
+
+    -- Display line segments (Prereqs)
+end
+
 -- ===========================================================================
 -- Generate the tooltip for each ability icon in player's game language
 -- ===========================================================================
@@ -172,11 +208,11 @@ function OnToggleAbilityHighlightsPanel()
     local isHidden:boolean = Controls.AbilityHighlightsPanel:IsHidden();
     if isHidden then
         Controls.AbilityHighlightsPanel:SetHide(false);
-        Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,22);
+        Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0, 22);
         Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Collapse ability highlights panel.");
     else
         Controls.AbilityHighlightsPanel:SetHide(true);
-        Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0,0);
+        Controls.AbilityHighlightsPanelToggleButton:SetTextureOffsetVal(0, 0);
         Controls.AbilityHighlightsPanelToggleButton:SetToolTipString("Expand ability highlights panel.");
     end
 end

@@ -23,11 +23,16 @@
       </Properties>
       <File>AHP_UnitPanel.xml</File>
     </AddUserInterfaces>
+
+    <UpdateText id="AHP_Translation">
+      <File>AHP_Translation.sql</File>
+    </UpdateText>
   </InGameActions>
 
   <Files>
     <File>AHP_UnitPanel.xml</File>
     <File>AHP_UnitPanel.lua</File>
     <File>Lysefjord_Dummy_Ability.sql</File>
+    <File>AHP_Translation.sql</File>
   </Files>
 </Mod>
