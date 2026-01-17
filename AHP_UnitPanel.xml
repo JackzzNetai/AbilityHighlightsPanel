@@ -17,7 +17,7 @@
                 <Image ID="Icon_AltitudeTraining"   Size="16,16" Icon="ICON_UNITOPERATION_RETRAIN"      IconSize="16" Hidden="1" />
             </Stack>
 
-            <Container ID="PromotionIconContainer" Anchor="C,C" Size="35,65" />
+            <Container ID="PromotionIconContainer" Anchor="C,C" Size="36,66" />
         </Image>
 
         <Button ID="AbilityHighlightsPanelToggleButton"
@@ -33,5 +33,8 @@
 
     <Instance Name="PromotionIconInstance">
         <Image ID="PromotionIconRootControl" Size="18,18" Texture="Controls_RadioButton" NoStateChange="1" ConsumeMouse="1" />
+    </Instance>
+    <Instance Name="PrereqLineInstance">
+        <Line ID="PrereqLineRootControl" Width="2" />
     </Instance>
 </Context>

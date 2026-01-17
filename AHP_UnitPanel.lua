@@ -2,6 +2,8 @@ include("InstanceManager");
 
 local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";  -- This is an official modifier
 local LYSEFJORD_DUMMY_ABILITY_TYPE  :string = "ABILITY_AHP_LYSEFJORD_PROMOTION";  -- The game doesn't actually handle this through ability. This is a made-up name for generic implementation
+local PROMO_ICON_CONTAINER_WIDTH    :number = 36;
+local HALF_PROMO_ICON_SIZE          :number = 18 / 2;
 
 local m_NaturalWonderAbilitiesConfig = {
     -- UnitAbilityType = {
@@ -39,6 +41,7 @@ local m_NaturalWonderAbilitiesConfig = {
 };
 
 local m_PromotionIconIM = InstanceManager:new("PromotionIconInstance", "PromotionIconRootControl", Controls.PromotionIconContainer);
+local m_PrereqLineIM    = InstanceManager:new("PrereqLineInstance",    "PrereqLineRootControl",    Controls.PromotionIconContainer);
 
 function UpdateAbilityHighlightsPanel(playerID:number, unitID:number)
     local pPlayer = Players[playerID];
@@ -48,7 +51,7 @@ function UpdateAbilityHighlightsPanel(playerID:number, unitID:number)
         if pUnit and unitInfo and IsValidForAbilityHighlightsPanelDisplay(unitInfo.FormationClass, unitInfo.ReligiousStrength) then
             Controls.AHP_Root:SetHide(false);
             UpdateNaturalWonderAbilityIcons(pUnit:GetAbility():GetAbilities());
-            UpdateLysefjordPromotionIcon(playerID, unitID);  -- UpdateLysefjordPromotionIcon must execute after UpdateNaturalWonderAbilityIcons for the correct display of Icon_LysefjordPromotion
+            UpdateLysefjordPromotionIcon(playerID, unitID);
             UpdatePromotionIcons(unitInfo.PromotionClass, pUnit:GetExperience():GetPromotions());
         else
             Controls.AHP_Root:SetHide(true);
@@ -148,39 +151,81 @@ end
 -- `dataPromotion` is an array of integers (Gemini)
 function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
     m_PromotionIconIM:ResetInstances();
+    m_PrereqLineIM:ResetInstances();
 
     -- Table for O(1) lookup
-    local hasThesePromotions:table = {};
+    local hasThesePromotions:table = {};  -- UnitPromotionType: true
     for _, id in ipairs(dataPromotion) do
-        hasThesePromotions[id] = true;
+        hasThesePromotions[GameInfo.UnitPromotions[id].UnitPromotionType] = true;
     end
 
-    -- Display nodes (promotions)
+    local instanceLocation:table = {};
+    local iconRenderQueue:table = {};
+
+    -- Calculate attributes for promotion icons
     for row in GameInfo.UnitPromotions() do
         if row.PromotionClass == promotionClass and row.Column ~= 0 then
             local horizontalAnchor:string = "";
-            if     row.Column == 1 then horizontalAnchor = "L";
-            elseif row.Column == 2 then horizontalAnchor = "C";
-            elseif row.Column == 3 then horizontalAnchor = "R";
+            local centerX         :number = 0;
+            local offsetY         :number = (row.Level-1)*18-3;
+            local centerY         :number = offsetY + HALF_PROMO_ICON_SIZE;
+            if     row.Column == 1 then
+                horizontalAnchor = "L";
+                centerX = HALF_PROMO_ICON_SIZE;
+            elseif row.Column == 2 then
+                horizontalAnchor = "C";
+                centerX = PROMO_ICON_CONTAINER_WIDTH / 2;
+            elseif row.Column == 3 then
+                horizontalAnchor = "R";
+                centerX = PROMO_ICON_CONTAINER_WIDTH - HALF_PROMO_ICON_SIZE;
             end
-            local textureOffsetVal:number = 0;
+            local textureOffsetY:number = 0;
             local unearnedHint:string = "";
-            if hasThesePromotions[row.Index] then
-                textureOffsetVal = 108;
+            if hasThesePromotions[row.UnitPromotionType] then
+                textureOffsetY = 108;
             else
-                textureOffsetVal = 36;
-                unearnedHint = " [COLOR:Red](" .. Locale.Lookup("LOC_AHP_UNEARNED") .. ")[ENDCOLOR]"
+                textureOffsetY = 36;
+                unearnedHint = " [COLOR:Red](" .. Locale.Lookup("LOC_AHP_UNEARNED") .. ")[ENDCOLOR]";
             end
 
-            local promotionIconInstance = m_PromotionIconIM:GetInstance();
-            promotionIconInstance.PromotionIconRootControl:SetAnchor(horizontalAnchor .. ",T");
-            promotionIconInstance.PromotionIconRootControl:SetOffsetVal(0, (row.Level-1)*18-3);
-            promotionIconInstance.PromotionIconRootControl:SetTextureOffsetVal(0, textureOffsetVal);
-            promotionIconInstance.PromotionIconRootControl:SetToolTipString(Locale.Lookup(row.Name) .. unearnedHint .. "[NEWLINE]" .. Locale.Lookup(row.Description));
+            instanceLocation[row.UnitPromotionType] = {X = centerX, Y = centerY};
+
+            table.insert(iconRenderQueue, {
+                Anchor = horizontalAnchor .. ",T",
+                OffsetX = 0,
+                OffsetY = offsetY,
+                TextureOffsetX = 0,
+                TextureOffsetY = textureOffsetY,
+                ToolTipString = Locale.Lookup(row.Name) .. unearnedHint .. "[NEWLINE]" .. Locale.Lookup(row.Description)
+            });
         end
     end
 
-    -- Display line segments (Prereqs)
+    -- Draw line segments (Prereqs)
+    for row in GameInfo.UnitPromotionPrereqs() do
+        if instanceLocation[row.UnitPromotion] then
+            local lineInstanceRootControl = m_PrereqLineIM:GetInstance().PrereqLineRootControl;
+            local prereqPromoLocation:table = instanceLocation[row.PrereqUnitPromotion];
+            local targetPromoLocation:table = instanceLocation[row.UnitPromotion];
+            lineInstanceRootControl:SetStartVal(prereqPromoLocation.X, prereqPromoLocation.Y);
+            lineInstanceRootControl:SetEndVal(targetPromoLocation.X, targetPromoLocation.Y);
+            if hasThesePromotions[row.PrereqUnitPromotion] and hasThesePromotions[row.UnitPromotion] then
+                lineInstanceRootControl:SetColor(0xFF68C0E7);
+            else
+                lineInstanceRootControl:SetColor(0xFF888888);
+            end
+        end
+    end
+
+    -- Draw nodes (Promotions)
+    -- Note: In order to render icons on top of the prereq lines, do NOT combine this loop with the calculation loop
+    for _, iconData in ipairs(iconRenderQueue) do
+        local promotionIconInstanceRootControl = m_PromotionIconIM:GetInstance().PromotionIconRootControl;
+        promotionIconInstanceRootControl:SetAnchor(iconData.Anchor);
+        promotionIconInstanceRootControl:SetOffsetVal(iconData.OffsetX, iconData.OffsetY);
+        promotionIconInstanceRootControl:SetTextureOffsetVal(iconData.TextureOffsetX, iconData.TextureOffsetY);
+        promotionIconInstanceRootControl:SetToolTipString(iconData.ToolTipString);
+    end
 end
 
 -- ===========================================================================
@@ -244,12 +289,12 @@ function Initialize()
     end);
 
     -- When a unit finishes moving
-    -- update: natural wonder abilities
+    -- update: natural wonder abilities; Icon_LysefjordPromotion;
     Events.UnitMoveComplete.Add(function(playerID, unitID, iX, iY) UpdateIfSelectedUnit(playerID, unitID); end);
 
     -- When a unit is promoted
     -- update: promo tree
-    Events.UnitPromoted.Add(function(playerID, unitID) UpdateIfSelectedUnit(playerID, unitID); end);  -- TODO: 是否有必要单独列出还是已被UnitCommandStarted涵盖
+    Events.UnitPromoted.Add(function(playerID, unitID) UpdateIfSelectedUnit(playerID, unitID); end);
 
     -- When a unit is upgraded
     -- update: Icon_LysefjordPromotion

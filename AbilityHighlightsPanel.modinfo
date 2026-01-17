@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Mod id="CE5AEBA1-6671-45C9-B685-A5D9A57D8E14" version="1.2">
   <Properties>
-    <Name>Natural Wonder Ability Indicators</Name>
+    <Name>Ability Highlights Panel</Name>
     <Stability>Beta</Stability>
-    <Description>Adds visual indicators to the Unit Panel for units that have acquired unique Natural Wonder abilities (e.g., Alpine Training, Spear of Fionn).</Description>
-    <Teaser>Track Natural Wonder abilities on units with ease.</Teaser>
+    <Description>Display the promotion tree and icons for abilities (e.g., Alpine Training, Spear of Fionn) on the unit panel.</Description>
+    <Teaser>Track promotions and earned abilities with ease.</Teaser>
     <Authors>NETAI</Authors>
     <AffectsSavedGames>0</AffectsSavedGames>
     <CompatibleVersions>2.0</CompatibleVersions>
