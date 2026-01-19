@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Mod id="CE5AEBA1-6671-45C9-B685-A5D9A57D8E14" version="1.3">
+<Mod id="CE5AEBA1-6671-45C9-B685-A5D9A57D8E14" version="1.6">
   <Properties>
     <Name>Ability Highlights Panel</Name>
     <Stability>Beta</Stability>
@@ -14,7 +14,8 @@
 
   <InGameActions>
     <UpdateDatabase id="AHP_DB">
-      <File>Lysefjord_Dummy_Ability.sql</File>
+      <File>AHP_Lysefjord_Dummy_Ability.sql</File>
+      <File>AHP_Experience_Modifiers.sql</File>
     </UpdateDatabase>
 
     <AddUserInterfaces id="AHP_UI">
@@ -32,7 +33,8 @@
   <Files>
     <File>AHP_UnitPanel.xml</File>
     <File>AHP_UnitPanel.lua</File>
-    <File>Lysefjord_Dummy_Ability.sql</File>
+    <File>AHP_Lysefjord_Dummy_Ability.sql</File>
+    <File>AHP_Experience_Modifiers.sql</File>
     <File>AHP_Translation.sql</File>
   </Files>
 </Mod>

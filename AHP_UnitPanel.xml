@@ -18,6 +18,8 @@
             </Stack>
 
             <Container ID="PromotionIconContainer" Anchor="C,C" Size="36,66" />
+
+            <Stack ID="ExpModifierStack" Anchor="L,C" Offset="9,-7" StackGrowth="Down" StackPadding="3" />
         </Image>
 
         <Button ID="AbilityHighlightsPanelToggleButton"
@@ -36,5 +38,11 @@
     </Instance>
     <Instance Name="PrereqLineInstance">
         <Line ID="PrereqLineRootControl" Width="2" />
+    </Instance>
+    <Instance Name="ExpModifierIconInstance">
+        <Container ID="ExpModifierIconRootControl" Size="10,10" ConsumeMouse="1">
+            <Label ID="Left"  String="^" Style="FontNormal24" Offset="0,0" />
+            <Label ID="Right" String="^" Style="FontNormal24" Offset="1,0" />
+        </Container>
     </Instance>
 </Context>

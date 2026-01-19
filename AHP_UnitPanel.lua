@@ -15,7 +15,7 @@ local REQUIRE_UPDATE_ALL                    :table  = {
 local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";  -- This is an official modifier
 local PROMO_ICON_CONTAINER_WIDTH    :number = 36;
 local HALF_PROMO_ICON_SIZE          :number = 18 / 2;
-local NATURAL_WONDER_ABILITY_CONFIG = {
+local NATURAL_WONDER_ABILITY_CONFIG :table  = {
     -- UnitAbilityType             = { FeatureType = FeatureType,                 ControlID = IconIDInXML }
 
     -- Land military units
@@ -28,19 +28,34 @@ local NATURAL_WONDER_ABILITY_CONFIG = {
     -- Religious units
     ABILITY_ALTITUDE_TRAINING      = { FeatureType = "FEATURE_EVEREST",           ControlID = "Icon_AltitudeTraining" }
 };
+local EXP_MODIFIER_BUILDINGS        :table = {
+    BARRACKS         = "BUILDING_BARRACKS",
+    STABLE           = "BUILDING_STABLE",
+    ARMORY           = "BUILDING_ARMORY",
+    MILITARY_ACADEMY = "BUILDING_MILITARY_ACADEMY",
+    LIGHTHOUSE       = "BUILDING_LIGHTHOUSE",
+    SHIPYARD         = "BUILDING_SHIPYARD",
+    SEAPORT          = "BUILDING_SEAPORT",
+    HANGAR           = "BUILDING_HANGAR",
+    AIRPORT          = "BUILDING_AIRPORT"
+};
+local ALL_EXP_MODIFIERS_AND_DESC    :table = {};  -- `{EXP_MODIFIER = DESCRIPTION}`. Populated in `Initialize()`.
 
-local m_PromotionIconIM = InstanceManager:new("PromotionIconInstance", "PromotionIconRootControl", Controls.PromotionIconContainer);
-local m_PrereqLineIM    = InstanceManager:new("PrereqLineInstance",    "PrereqLineRootControl",    Controls.PromotionIconContainer);
+local m_PromotionIconIM   = InstanceManager:new("PromotionIconInstance",   "PromotionIconRootControl",   Controls.PromotionIconContainer);
+local m_PrereqLineIM      = InstanceManager:new("PrereqLineInstance",      "PrereqLineRootControl",      Controls.PromotionIconContainer);
+local m_ExpModifierIconIM = InstanceManager:new("ExpModifierIconInstance", "ExpModifierIconRootControl", Controls.ExpModifierStack);
 
 -- Arguments passed to `playerID`, `unitID`, and `pUnit` are guaranteed to not be `nil` 
 function UpdateAbilityHighlightsPanel(playerID:number, unitID:number, pUnit, updateOptions:table)
-    local unitInfo:table = GameInfo.Units[pUnit:GetType()];
-    if unitInfo and IsValidForAbilityHighlightsPanelDisplay(unitInfo.FormationClass, unitInfo.ReligiousStrength) then
+    local unitDef:table = GameInfo.Units[pUnit:GetType()];
+    if unitDef and IsValidForAbilityHighlightsPanelDisplay(unitDef.FormationClass, unitDef.ReligiousStrength) then
         Controls.AHP_Root:SetHide(false);
-        if updateOptions[REQUIRE_UPDATE_NATURAL_WONDER_ABILITY] then UpdateNaturalWonderAbilityIcons(pUnit:GetAbility():GetAbilities());                   end
-        if updateOptions[REQUIRE_UPDATE_LYSEFJORD_ICON]         then UpdateLysefjordPromotionIcon(playerID, unitID);                                       end
-        if updateOptions[REQUIRE_UPDATE_PROMOTION_ICON]         then UpdatePromotionIcons(unitInfo.PromotionClass, pUnit:GetExperience():GetPromotions()); end
-        if updateOptions[REQUIRE_UPDATE_EXP_MODIFIER_ICON]      then end -- TODO
+        local dataAbility:table   = pUnit:GetAbility():GetAbilities();
+        local dataPromotion:table = pUnit:GetExperience():GetPromotions();
+        if updateOptions[REQUIRE_UPDATE_NATURAL_WONDER_ABILITY] then UpdateNaturalWonderAbilityIcons(dataAbility); end
+        if updateOptions[REQUIRE_UPDATE_LYSEFJORD_ICON]         then UpdateLysefjordPromotionIcon(playerID, unitID); end
+        if updateOptions[REQUIRE_UPDATE_PROMOTION_ICON]         then UpdatePromotionIcons(unitDef.PromotionClass, dataPromotion); end
+        if updateOptions[REQUIRE_UPDATE_EXP_MODIFIER_ICON]      then UpdateExpModifiers(unitDef, dataAbility); end
     else
         Controls.AHP_Root:SetHide(true);
     end
@@ -74,9 +89,12 @@ function UpdateNaturalWonderAbilityIcons(dataAbility:table)
         for _, abilityIndex in ipairs(dataAbility) do
             local abilityDef:table = GameInfo.UnitAbilities[abilityIndex];
 
-            if abilityDef and abilityDef.UnitAbilityType and NATURAL_WONDER_ABILITY_CONFIG[abilityDef.UnitAbilityType] then
-                -- this is a natural wonder ability!
-                hasTheseNaturalWonderAbilities[abilityDef.UnitAbilityType] = true;
+            if abilityDef then
+                local unitAbilityType:string = abilityDef.UnitAbilityType;
+                if NATURAL_WONDER_ABILITY_CONFIG[unitAbilityType] then
+                    -- this is a natural wonder ability!
+                    hasTheseNaturalWonderAbilities[unitAbilityType] = true;
+                end
             end
         end
     end
@@ -191,16 +209,19 @@ function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
     -- Draw line segments (Prereqs)
     for row in GameInfo.UnitPromotionPrereqs() do
         if instanceLocation[row.UnitPromotion] then
+            local prereqPromoLocation:table  = instanceLocation[row.PrereqUnitPromotion];
+            local targetPromoLocation:table  = instanceLocation[row.UnitPromotion];
+            local lineColor          :number = 0;
+            if hasThesePromotions[row.PrereqUnitPromotion] and hasThesePromotions[row.UnitPromotion] then
+                lineColor = 0xFF68C0E7;
+            else
+                lineColor = 0xFF888888;
+            end
+
             local lineInstanceRootControl = m_PrereqLineIM:GetInstance().PrereqLineRootControl;
-            local prereqPromoLocation:table = instanceLocation[row.PrereqUnitPromotion];
-            local targetPromoLocation:table = instanceLocation[row.UnitPromotion];
             lineInstanceRootControl:SetStartVal(prereqPromoLocation.X, prereqPromoLocation.Y);
             lineInstanceRootControl:SetEndVal(targetPromoLocation.X, targetPromoLocation.Y);
-            if hasThesePromotions[row.PrereqUnitPromotion] and hasThesePromotions[row.UnitPromotion] then
-                lineInstanceRootControl:SetColor(0xFF68C0E7);
-            else
-                lineInstanceRootControl:SetColor(0xFF888888);
-            end
+            lineInstanceRootControl:SetColor(lineColor);
         end
     end
 
@@ -213,6 +234,78 @@ function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
         promotionIconInstanceRootControl:SetTextureOffsetVal(iconData.TextureOffsetX, iconData.TextureOffsetY);
         promotionIconInstanceRootControl:SetToolTipString(iconData.ToolTipString);
     end
+end
+
+function UpdateExpModifiers(unitDef:table, dataAbility:table)
+    m_ExpModifierIconIM:ResetInstances();
+
+    local unitType      :string = unitDef.UnitType;
+    local formationClass:string = unitDef.FormationClass;
+    local promotionClass:string = unitDef.PromotionClass;
+
+
+    if promotionClass == "PROMOTION_CLASS_RECON" or
+       promotionClass == "PROMOTION_CLASS_GIANT_DEATH_ROBOT" then
+        Controls.ExpModifierStack:CalculateSize();
+        return;
+    end
+
+    local relevantBuildings:table = {};
+    if formationClass == "FORMATION_CLASS_LAND_COMBAT" then
+        if unitType == "UNIT_MACEDONIAN_HETAIROI" then
+            table.insert(relevantBuildings, "BARRACKS");
+            table.insert(relevantBuildings, "STABLE");
+        elseif promotionClass == "PROMOTION_CLASS_MELEE" or
+               promotionClass == "PROMOTION_CLASS_RANGED" or
+               promotionClass == "PROMOTION_CLASS_ANTI_CAVALRY" then
+            table.insert(relevantBuildings, "BARRACKS");
+        elseif promotionClass == "PROMOTION_CLASS_LIGHT_CAVALRY" or
+               promotionClass == "PROMOTION_CLASS_HEAVY_CAVALRY" or
+               promotionClass == "PROMOTION_CLASS_SIEGE" then
+            table.insert(relevantBuildings, "STABLE");
+        end
+        table.insert(relevantBuildings, "ARMORY");
+        table.insert(relevantBuildings, "MILITARY_ACADEMY");
+    elseif formationClass == "FORMATION_CLASS_NAVAL" then
+        table.insert(relevantBuildings, "LIGHTHOUSE");
+        table.insert(relevantBuildings, "SHIPYARD");
+        table.insert(relevantBuildings, "SEAPORT");
+    elseif formationClass == "FORMATION_CLASS_AIR" then
+        table.insert(relevantBuildings, "HANGAR");
+        table.insert(relevantBuildings, "AIRPORT");
+    end
+
+    local hasTheseExpModifiers:table = {};
+    if next(relevantBuildings) and dataAbility then
+    -- ^^^
+    -- no way that the unit has exp modifiers if there are no relevant buildings
+        for _, abilityIndex in ipairs(dataAbility) do
+            local abilityDef:table = GameInfo.UnitAbilities[abilityIndex];
+            if abilityDef then
+                local unitAbilityType:string = abilityDef.UnitAbilityType;
+                if ALL_EXP_MODIFIERS_AND_DESC[unitAbilityType] then
+                    hasTheseExpModifiers[unitAbilityType] = true;
+                end
+            end
+        end
+    end
+
+    for _, building in ipairs(relevantBuildings) do
+        local expModifier:string = GameInfo.AbilityHighlightsPanel_ExperienceModifiers[EXP_MODIFIER_BUILDINGS[building]].UnitAbilityType;
+        local labelColor :number = 0;
+        if hasTheseExpModifiers[expModifier] then
+            labelColor = 0xFF68C0E7;
+        else
+            labelColor = 0xFF888888;
+        end
+
+        local expModifierIconInstance = m_ExpModifierIconIM:GetInstance();
+        expModifierIconInstance.ExpModifierIconRootControl:SetToolTipString(Locale.Lookup(ALL_EXP_MODIFIERS_AND_DESC[expModifier]));
+        expModifierIconInstance.Left:SetColor(labelColor);
+        expModifierIconInstance.Right:SetColor(labelColor);
+    end
+
+    Controls.ExpModifierStack:CalculateSize();
 end
 
 -- ===========================================================================
@@ -230,6 +323,48 @@ function InitAbilityTooltips()
 
             Controls[config.ControlID]:SetToolTipString(name .. " (" .. source .. ")[NEWLINE]" .. desc);
         end
+    end
+end
+
+function SwapPlayerSpecificExpModifierBuildings()
+    local playerID  :number = Game.GetLocalPlayer();
+    local pPlayerConfig     = PlayerConfigurations[playerID];
+    local civType   :string = pPlayerConfig:GetCivilizationTypeName();
+    local leaderType:string = pPlayerConfig:GetLeaderTypeName();
+
+    for building, buildingType in pairs(EXP_MODIFIER_BUILDINGS) do
+        for row in GameInfo.BuildingReplaces() do
+            if row.ReplacesBuildingType == buildingType then
+                local uniqueBuildingType:string = row.CivUniqueBuildingType;
+                local uniqueBuildingDef :table  = GameInfo.Buildings[uniqueBuildingType];
+                if uniqueBuildingDef and HasTrait(uniqueBuildingDef.TraitType, civType, leaderType) then
+                    EXP_MODIFIER_BUILDINGS[building] = uniqueBuildingType;
+                end
+            end
+        end
+    end
+end
+
+function HasTrait(traitType:string, civType:string, leaderType:string)
+    if traitType then
+        for row in GameInfo.CivilizationTraits() do
+            if row.TraitType == traitType and row.CivilizationType == civType then
+                return true;
+            end
+        end
+        for row in GameInfo.LeaderTraits() do
+            if row.TraitType == traitType and row.LeaderType == leaderType then
+                return true;
+            end
+        end
+    end
+    return false
+end
+
+function PopulateAllPossibleExpModifiers()
+    for row in GameInfo.AbilityHighlightsPanel_ExperienceModifiers() do
+        local unitAbilityType:string = row.UnitAbilityType;
+        ALL_EXP_MODIFIERS_AND_DESC[unitAbilityType] = GameInfo.UnitAbilities[unitAbilityType].Description;
     end
 end
 
@@ -266,6 +401,8 @@ function Initialize()
 
 
     InitAbilityTooltips();
+    SwapPlayerSpecificExpModifierBuildings();
+    PopulateAllPossibleExpModifiers();
 
     -- When a unit is selected
     -- update: natural wonder abilities; Icon_LysefjordPromotion; exp modifier; promo tree
