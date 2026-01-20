@@ -231,13 +231,11 @@ function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
                 horizontalAnchor = "R";
                 centerX = PROMO_ICON_CONTAINER_WIDTH - HALF_PROMO_ICON_SIZE;
             end
-            local textureOffsetY:number = 0;
-            local unearnedHint:string = "";
+            local textureOffsetY:number = 36;
+            local toolTipColor  :string = UNEARNED_COLOR_TOOLTIP;
             if hasThesePromotions[row.UnitPromotionType] then
                 textureOffsetY = 108;
-            else
-                textureOffsetY = 36;
-                unearnedHint = " [COLOR:Red](" .. Locale.Lookup("LOC_AHP_UNEARNED") .. ")[ENDCOLOR]";
+                toolTipColor = EARNED_COLOR_TOOLTIP;
             end
 
             instanceLocation[row.UnitPromotionType] = {X = centerX, Y = centerY};
@@ -248,7 +246,7 @@ function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
                 OffsetY = offsetY,
                 TextureOffsetX = 0,
                 TextureOffsetY = textureOffsetY,
-                ToolTipString = Locale.Lookup(row.Name) .. unearnedHint .. "[NEWLINE]" .. Locale.Lookup(row.Description)
+                ToolTipString = WrapInColor(Locale.Lookup(row.Name) .. "[NEWLINE]" .. Locale.Lookup(row.Description), toolTipColor)
             });
         end
     end
