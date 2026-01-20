@@ -1,16 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Mod id="CE5AEBA1-6671-45C9-B685-A5D9A57D8E14" version="2.0">
   <Properties>
-    <Name>Ability Highlights Panel</Name>
+    <Name>LOC_AHP_NAME</Name>
+    <Description>LOC_AHP_DESCRIPTION</Description>
+    <Teaser>LOC_AHP_TEASER</Teaser>
+    
     <Stability>Beta</Stability>
-    <Description>Display the promotion tree and icons for abilities (e.g., Alpine Training, Spear of Fionn) on the unit panel.</Description>
-    <Teaser>Track promotions and earned abilities with ease.</Teaser>
     <Authors>NETAI</Authors>
     <AffectsSavedGames>0</AffectsSavedGames>
     <CompatibleVersions>2.0</CompatibleVersions>
     <SupportsSinglePlayer>1</SupportsSinglePlayer>
     <SupportsMultiplayer>1</SupportsMultiplayer>
   </Properties>
+
+  <LocalizedText>
+    <Text id="LOC_AHP_NAME">
+      <en_US>Ability Highlights Panel</en_US>
+      <zh_Hans_CN>单位能力概览面板</zh_Hans_CN>
+      <ja_JP>アビリティ・ハイライト・パネル</ja_JP>
+    </Text>
+
+    <Text id="LOC_AHP_DESCRIPTION">
+      <en_US>Display the promotion tree and icons for abilities (e.g., Alpine Training, Spear of Fionn) on the unit panel.</en_US>
+      <zh_Hans_CN>在单位面板上显示强化树及特殊能力图标（如高山雄心、巨人之矛）。</zh_Hans_CN>
+      <ja_JP>ユニットパネルにレベルアップツリーと獲得した能力（山岳訓練、フィオンの槍など）のアイコンを表示します。</ja_JP>
+    </Text>
+
+    <Text id="LOC_AHP_TEASER">
+      <en_US>Track promotions and earned abilities with ease.</en_US>
+      <zh_Hans_CN>快速查看单位强化与已获得的能力。</zh_Hans_CN>
+      <ja_JP>レベルアップや獲得した能力を簡単に確認</ja_JP>
+    </Text>
+  </LocalizedText>
 
   <InGameActions>
     <UpdateDatabase id="AHP_DB">
