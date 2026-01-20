@@ -10,21 +10,42 @@ local REQUIRE_UPDATE_ALL               :table  = {
     [REQUIRE_UPDATE_EXP_MODIFIER_ICON] = true
 };
 
-local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";  -- This is an official modifier
 local PROMO_ICON_CONTAINER_WIDTH    :number = 36;
 local HALF_PROMO_ICON_SIZE          :number = 18 / 2;
+local UNEARNED_COLOR_ICON           :number = 0xFF888888;
+local UNEARNED_COLOR_TOOLTIP        :string = "96,96,96,255";
+local EARNED_COLOR_TOOLTIP          :string = "0,0,0,255";
+local LYSEFJORD_MODIFIER_ID         :string = "LYSEFJORDEN_GRANT_NAVAL_UNIT_EXPERIENCE";  -- This is an official modifier
 local NATURAL_WONDER_ABILITY_CONFIG :table  = {
     -- UnitAbilityType             = { FeatureType = NaturalWonderFeatureType,    Icon = IconFromGameIconAtlas,           Tooltip =  }
 
     -- Land military units
-    ABILITY_ALPINE_TRAINING        = { FeatureType = "FEATURE_MATTERHORN",        Icon = "ICON_UNITOPERATION_RETRAIN",    Tooltip = "" },
-    ABILITY_SPEAR_OF_FIONN         = { FeatureType = "FEATURE_GIANTS_CAUSEWAY",   Icon = "ICON_UNIT_MACEDONIAN_HETAIROI", Tooltip = "" },
-    ABILITY_WATER_OF_LIFE          = { FeatureType = "FEATURE_FOUNTAIN_OF_YOUTH", Icon = "ICON_UNITOPERATION_HEAL",       Tooltip = "" },
+    ABILITY_ALPINE_TRAINING        = {
+        FeatureType = "FEATURE_MATTERHORN",                  Icon = "ICON_UNITOPERATION_RETRAIN",
+        ValidFormationClass = "FORMATION_CLASS_LAND_COMBAT", Tooltip = ""
+    },
+    ABILITY_SPEAR_OF_FIONN         = {
+        FeatureType = "FEATURE_GIANTS_CAUSEWAY",             Icon = "ICON_UNIT_MACEDONIAN_HETAIROI",
+        ValidFormationClass = "FORMATION_CLASS_LAND_COMBAT", Tooltip = ""
+    },
+    ABILITY_WATER_OF_LIFE          = {
+        FeatureType = "FEATURE_FOUNTAIN_OF_YOUTH",           Icon = "ICON_UNITOPERATION_HEAL",
+        ValidFormationClass = "FORMATION_CLASS_LAND_COMBAT", Tooltip = ""
+    },
     -- Naval military units
-    ABILITY_MYSTERIOUS_CURRENTS    = { FeatureType = "FEATURE_BERMUDA_TRIANGLE",  Icon = "ICON_UNITOPERATION_MOVE_TO",    Tooltip = "" },
-    [LYSEFJORD_DUMMY_ABILITY_TYPE] = { FeatureType = "FEATURE_LYSEFJORDEN",       Icon = "ICON_UNITCOMMAND_PROMOTE",      Tooltip = "" },
+    ABILITY_MYSTERIOUS_CURRENTS    = {
+        FeatureType = "FEATURE_BERMUDA_TRIANGLE",            Icon = "ICON_UNITOPERATION_MOVE_TO",
+        ValidFormationClass = "FORMATION_CLASS_NAVAL",       Tooltip = ""
+    },
+    [LYSEFJORD_DUMMY_ABILITY_TYPE] = {
+        FeatureType = "FEATURE_LYSEFJORDEN",                 Icon = "ICON_UNITCOMMAND_PROMOTE",
+        ValidFormationClass = "FORMATION_CLASS_NAVAL",       Tooltip = ""
+    },
     -- Religious units
-    ABILITY_ALTITUDE_TRAINING      = { FeatureType = "FEATURE_EVEREST",           Icon = "ICON_UNITOPERATION_RETRAIN",    Tooltip = "" }
+    ABILITY_ALTITUDE_TRAINING      = {
+        FeatureType = "FEATURE_EVEREST",                     Icon = "ICON_UNITOPERATION_RETRAIN",
+        ValidFormationClass = "FORMATION_CLASS_CIVILIAN",    Tooltip = ""
+    }
 };
 local EXP_MODIFIER_BUILDINGS        :table = {
     BARRACKS         = "BUILDING_BARRACKS",
@@ -39,6 +60,7 @@ local EXP_MODIFIER_BUILDINGS        :table = {
 };
 local ALL_EXP_MODIFIERS_AND_DESC    :table = {};  -- `{EXP_MODIFIER = DESCRIPTION}`. Populated in `Initialize()`.
 
+local m_NWInGame:table    = {};
 local m_NWAbilityIconIM   = InstanceManager:new("NWAbilityIconInstance",   "NWAbilityIconRootControl",   Controls.NWAbilityStack);
 local m_PromotionIconIM   = InstanceManager:new("PromotionIconInstance",   "PromotionIconRootControl",   Controls.PromotionIconContainer);
 local m_PrereqLineIM      = InstanceManager:new("PrereqLineInstance",      "PrereqLineRootControl",      Controls.PromotionIconContainer);
@@ -100,18 +122,36 @@ function UpdateNWAbilityIcons(playerID:number, unitID:number, formationClass:str
         end
     end
 
-    if formationClass == "FORMATION_CLASS_NAVAL" and HasLysefjordPromotion(playerID, unitID) then
+    local pPlayerVisibility = PlayersVisibility[playerID];
+    local discoveredNaturalWonders:table = {};  -- `{FeatureType = true}`
+    for _, nwData in ipairs(m_NWInGame) do
+        local pPlot = Map.GetPlotByIndex(nwData.Index);
+        if pPlayerVisibility:IsRevealed(pPlot:GetX(), pPlot:GetY()) then
+            discoveredNaturalWonders[nwData.FeatureType] = true;
+        end
+    end
+
+    if discoveredNaturalWonders["FEATURE_LYSEFJORDEN"] and
+       formationClass == "FORMATION_CLASS_NAVAL" and
+       HasLysefjordPromotion(playerID, unitID) then
         hasTheseNWAbilities[LYSEFJORD_DUMMY_ABILITY_TYPE] = true;
     end
 
     -- Reveal or hide icons based on availability
     for unitAbilityType, config in pairs(NATURAL_WONDER_ABILITY_CONFIG) do
-        if hasTheseNWAbilities[unitAbilityType] then
+        if discoveredNaturalWonders[config.FeatureType] and formationClass == config.ValidFormationClass then
+            local iconColor   :number = UNEARNED_COLOR_ICON;
+            local toolTipColor:string = UNEARNED_COLOR_TOOLTIP;
+            if hasTheseNWAbilities[unitAbilityType] then
+                iconColor = 0xFFFFFFFF;
+                toolTipColor = EARNED_COLOR_TOOLTIP;
+            end
+
             local NWAbilityIconInstanceRootControl = m_NWAbilityIconIM:GetInstance().NWAbilityIconRootControl;
             NWAbilityIconInstanceRootControl:SetIcon(config.Icon);
-            NWAbilityIconInstanceRootControl:SetToolTipString(config.Tooltip);
+            NWAbilityIconInstanceRootControl:SetToolTipString(WrapInColor(config.Tooltip, toolTipColor));
+            NWAbilityIconInstanceRootControl:SetColor(iconColor);
         end
-        -- TODO: (future) maybe show silhouette for acquirable abilities that are not gained yet
     end
 
     Controls.NWAbilityStack:CalculateSize();
@@ -219,7 +259,7 @@ function UpdatePromotionIcons(promotionClass:string, dataPromotion:table)
             local prereqPromoLocation:table   = instanceLocation[row.PrereqUnitPromotion];
             local targetPromoLocation:table   = instanceLocation[row.UnitPromotion];
             local bothEarned         :boolean = hasThesePromotions[row.PrereqUnitPromotion] and hasThesePromotions[row.UnitPromotion];
-            local lineColor          :number  = bothEarned and 0xFF68C0E7 or 0xFF888888;
+            local lineColor          :number  = bothEarned and 0xFF68C0E7 or UNEARNED_COLOR_ICON;
 
             local lineInstanceRootControl = m_PrereqLineIM:GetInstance().PrereqLineRootControl;
             lineInstanceRootControl:SetStartVal(prereqPromoLocation.X, prereqPromoLocation.Y);
@@ -293,19 +333,15 @@ function UpdateExpModifiers(unitDef:table, dataAbility:table)
 
     for _, building in ipairs(relevantBuildings) do
         local expModifier :string = GameInfo.AbilityHighlightsPanel_ExperienceModifiers[EXP_MODIFIER_BUILDINGS[building]].UnitAbilityType;
-        local labelColor  :number = 0;
-        local toolTipColor:string = "";
+        local labelColor  :number = UNEARNED_COLOR_ICON;
+        local toolTipColor:string = UNEARNED_COLOR_TOOLTIP;
         if hasTheseExpModifiers[expModifier] then
             labelColor = 0xFF68C0E7;
-            toolTipColor = "Black";
-        else
-            labelColor = 0xFF888888;
-            toolTipColor = "96,96,96,255";
+            toolTipColor = EARNED_COLOR_TOOLTIP;
         end
-        local toolTip     :string = WrapInColor(Locale.Lookup(ALL_EXP_MODIFIERS_AND_DESC[expModifier]), toolTipColor);
 
         local expModifierIconInstance = m_ExpModifierIconIM:GetInstance();
-        expModifierIconInstance.ExpModifierIconRootControl:SetToolTipString(toolTip);
+        expModifierIconInstance.ExpModifierIconRootControl:SetToolTipString(WrapInColor(ALL_EXP_MODIFIERS_AND_DESC[expModifier], toolTipColor));
         expModifierIconInstance.Left:SetColor(labelColor);
         expModifierIconInstance.Right:SetColor(labelColor);
     end
@@ -349,7 +385,24 @@ function InitializeGameData()
     -- Populate `ALL_EXP_MODIFIERS_AND_DESC`
     for row in GameInfo.AbilityHighlightsPanel_ExperienceModifiers() do
         local unitAbilityType:string = row.UnitAbilityType;
-        ALL_EXP_MODIFIERS_AND_DESC[unitAbilityType] = GameInfo.UnitAbilities[unitAbilityType].Description;
+        ALL_EXP_MODIFIERS_AND_DESC[unitAbilityType] = Locale.Lookup(GameInfo.UnitAbilities[unitAbilityType].Description);
+    end
+
+    -- Cache Natural Wonders presented in this game
+    local mapWidth, mapHeight = Map.GetGridSize();
+    for iPlotIndex = 0, (mapWidth * mapHeight) - 1 do
+        local pPlot = Map.GetPlotByIndex(iPlotIndex);
+        local featureID = pPlot:GetFeatureType();
+
+        if featureID ~= -1 then
+            local featureDef = GameInfo.Features[featureID];
+            if featureDef and featureDef.NaturalWonder then
+                table.insert(m_NWInGame, {
+                    Index = iPlotIndex,
+                    FeatureType = featureDef.FeatureType
+                });
+            end
+        end
     end
 end
 
